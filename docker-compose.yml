@@ -1,0 +1,98 @@
+version: "3"
+name: lab-1
+networks: 
+    default: 
+        driver: bridge
+
+services: 
+  node-app: 
+      build: 
+        context: ./app
+        args: 
+          NODE_ENV: development
+      container_name: app
+      ports: 
+        - "5000:5000"
+      volumes:
+        - ./app/:/app
+        - /app/node_modules
+      environment:
+        - PORT=5000
+        - NODE_ENV=development
+      privileged: true
+      depends_on:
+        - db
+        - grafana
+        - influxdb
+      command: ["npm", "run", "dev"]
+  db:
+    image: postgres
+    restart: always
+    container_name: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - default
+
+  adminer: 
+    image: adminer
+    container_name: adminer
+    networks:
+        - default
+    restart: always
+    ports:
+        - 8080:8080
+
+  influxdb: 
+    image: influxdb:latest
+    container_name: influxdb
+    networks:
+        - default
+    security_opt:
+        - no-new-privileges:true
+    restart: always
+    ports:
+        - 8086:8086
+    volumes:
+        - ./config/influxdb2:/etc/influxdb2
+        - ./data/influxdb2:/var/lib/influxdb2 
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+        - influxdb
+    networks:
+        - default
+    security_opt:
+        - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+        - 3000:3000
+    volumes:
+        - ./config/grafana:/etc/grafana
+        - ./data/grafana:/var/lib/grafana
+    
+
+# Telegraf is used to supply test data to influxdb will be deleted later. 
+  telegraf: 
+    image: telegraf:latest
+    container_name: telegraf
+    env_file:
+      - .env
+    networks:
+        - default
+    security_opt:
+        - no-new-privileges:true        
+    depends_on:
+        - influxdb
+    restart: unless-stopped 
+    volumes:
+        - ./config/telegraf:/etc/telegraf
+        - ./data/telegraf:/var/lib/telegraf

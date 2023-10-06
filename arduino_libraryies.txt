@@ -1,0 +1,6 @@
+Arduino_JSON
+AsyncTCP
+DallasTemperature
+ESPAsyncTCP
+ESPAsyncWebSrv
+OneWire
